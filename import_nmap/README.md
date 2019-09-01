@@ -1,7 +1,7 @@
 Keepnote_import_nmap
 ====================
 
-**original author https://github.com/s0i37/keepnote_import_nmap**
+**original author https://github.com/felmoltor/Keepnote_import_nmap**
 
 Plugin for keepnote to import a XML nmap file.
 This plugin is usefull to keep track of the intrusion test you have done on every port of the alive host in a perimeter scan.
