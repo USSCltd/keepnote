@@ -261,7 +261,10 @@ def import_nmap(node, filename, index=None, task=None):
 
     hosts = []
     for hostnode in msfxml.getElementsByTagName("host"):
+        if not hostnode.getElementsByTagName("address"):
+            continue
         host = Host(ip=hostnode.getElementsByTagName("address")[0].childNodes[0].nodeValue)
+        print "[*] parsed host %s" % host.ip
         host.mac = hostnode.getElementsByTagName("mac")[0].childNodes[0].nodeValue if hostnode.getElementsByTagName("mac")[0].childNodes else ''
         host.hostname = hostnode.getElementsByTagName("name")[0].childNodes[0].nodeValue if hostnode.getElementsByTagName("name")[0].childNodes else ''
         host.os = hostnode.getElementsByTagName("os-name")[0].childNodes[0].nodeValue if hostnode.getElementsByTagName("os-name")[0].childNodes else ''
@@ -271,16 +274,16 @@ def import_nmap(node, filename, index=None, task=None):
         for servicenode in hostnode.getElementsByTagName("services")[0].getElementsByTagName("service"):
             service = Service(port=servicenode.getElementsByTagName("port")[0].childNodes[0].nodeValue)
             service.proto = servicenode.getElementsByTagName("proto")[0].childNodes[0].nodeValue
-            service.state = servicenode.getElementsByTagName("state")[0].childNodes[0].nodeValue
+            service.state = servicenode.getElementsByTagName("state")[0].childNodes[0].nodeValue if servicenode.getElementsByTagName("state")[0].childNodes else ''
             service.name = servicenode.getElementsByTagName("name")[0].childNodes[0].nodeValue if servicenode.getElementsByTagName("name")[0].childNodes else ''
             service.info = servicenode.getElementsByTagName("info")[0].childNodes[0].nodeValue if servicenode.getElementsByTagName("info")[0].childNodes else ''
             host.services.append(service)
         hosts.append(host)    
 
     hosts.sort(key=lambda h:h._id)
-
+    i = 0
     for host in hosts:
-
+        i += 1
         subnetnode = get_subnet(where=node, ip=host.ip)
         if not subnetnode:
             cidr = str(IPNetwork("%s/24"%host.ip).cidr)
@@ -294,6 +297,9 @@ def import_nmap(node, filename, index=None, task=None):
         hostnode = get_hostnode(where=subnetnode, ip=host.ip)
         if not hostnode:
             hostnode = subnetnode.new_child(notebooklib.CONTENT_TYPE_PAGE, host.ip)
+            print "[+] %d/%d added new host %s" % (i,len(hosts),host.ip)
+        else:
+            print "[+] %d/%d updated host %s" % (i,len(hosts),host.ip)
         
         #import pdb;pdb.set_trace()
         hostinfo = "{ip} {hostname} {mac}".format( ip=host.ip, hostname=host.hostname, mac=host.mac )
@@ -312,10 +318,13 @@ def import_nmap(node, filename, index=None, task=None):
 
         if host.vulns > 0:
             hostnode.set_attr("title_fgcolor","#770000")
+            subnetnode.set_attr("title_fgcolor","#770000")
 
         if host.comments.find('wned') != -1:
             hostnode.set_attr("title_fgcolor","#FFFFFF")
             hostnode.set_attr("title_bgcolor","#770000")
+            subnetnode.set_attr("title_fgcolor","#FFFFFF")
+            subnetnode.set_attr("title_bgcolor","#770000")
 
         host.services.sort(key=lambda s:s._id)
         for service in host.services:
